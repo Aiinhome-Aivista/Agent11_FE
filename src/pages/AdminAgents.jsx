@@ -60,6 +60,7 @@ export function AdminAgents() {
   }
 
   useEffect(() => {
+    setSelectedMission('') // Fix: Reset selected mission when campaign changes
     if (!selectedCampaign) {
       setRecommendations([])
       return
