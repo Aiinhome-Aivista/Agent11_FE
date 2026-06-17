@@ -102,20 +102,30 @@ export function AdminInfluencers() {
       </div>
       <Panel>
         <table className="tbl">
-          <thead><tr><th>Influencer</th><th>Niche</th><th>Followers</th><th>Engagement</th><th>KYC</th><th>Fraud Score</th><th>Platforms</th></tr></thead>
+          <thead><tr><th>Influencer</th><th>Niche</th><th>Followers</th><th>Engagement</th><th>KYC</th><th>Platforms</th></tr></thead>
           <tbody>
             {influencers.map(inf => (
               <tr key={inf.id}>
-                <td><div className="flex items-center gap-2"><Avatar name={inf.full_name} size={7} /><div><div className="text-sm font-medium">{inf.full_name}</div><div className="text-xs text-muted">{inf.email}</div></div></div></td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <Avatar name={inf.full_name} size={7} />
+                    <div>
+                      <div className="text-sm font-medium flex items-center gap-1.5">
+                        {inf.full_name}
+                        {inf.fraud_score > 60 && <ShieldAlert size={14} className="text-danger" title={`High Risk (Score: ${inf.fraud_score})`} />}
+                      </div>
+                      <div className="text-xs text-muted">{inf.email}</div>
+                    </div>
+                  </div>
+                </td>
                 <td className="capitalize text-muted text-sm">{inf.niche || '—'}</td>
                 <td>{inf.total_followers?.toLocaleString('en-IN') || '—'}</td>
                 <td><EngagementPill rate={inf.avg_engagement_rate} /></td>
                 <td><Badge variant={inf.kyc_status === 'approved' ? 'green' : inf.kyc_status === 'rejected' ? 'red' : 'amber'}>{inf.kyc_status}</Badge></td>
-                <td className="w-32"><FraudBadge score={inf.fraud_score} /></td>
                 <td><div className="flex gap-1">{inf.social_platforms?.map(p => <PlatformIcon key={p.platform} platform={p.platform} />)}</div></td>
               </tr>
             ))}
-            {influencers.length === 0 && <tr><td colSpan={7} className="text-center text-muted py-10">No influencers found. Adjust filters.</td></tr>}
+            {influencers.length === 0 && <tr><td colSpan={6} className="text-center text-muted py-10">No influencers found. Adjust filters.</td></tr>}
           </tbody>
         </table>
       </Panel>

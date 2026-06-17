@@ -243,10 +243,32 @@ export function AdminAgents() {
                           <td>
                             {(() => {
                               const isAssigned = assignments.some(a => String(a.mission_id) === String(selectedMission) && String(a.influencer_id) === String(r.influencer_id));
+                              if (isAssigned) {
+                                return (
+                                  <button 
+                                    className="text-xs py-1 px-3 flex items-center justify-center gap-1 rounded-lg transition-colors font-medium bg-danger/10 text-danger hover:bg-danger/20 border border-danger/20"
+                                    disabled={!selectedMission || assigning === r.influencer_id}
+                                    onClick={async () => {
+                                      setAssigning(r.influencer_id)
+                                      try {
+                                        await missionsAPI.unassign(selectedMission, r.influencer_id)
+                                        toast.success(`Mission unassigned from ${r.name}!`)
+                                        loadData() // refresh the assignments state
+                                      } catch(err) {
+                                        toast.error(err.response?.data?.detail || 'Unassign failed')
+                                      } finally {
+                                        setAssigning(null)
+                                      }
+                                    }}
+                                  >
+                                    {assigning === r.influencer_id ? <Spinner size={12}/> : <><XCircle size={12}/> Unassign</>}
+                                  </button>
+                                );
+                              }
                               return (
                                 <button 
-                                  className={`text-xs py-1 px-3 flex items-center justify-center gap-1 rounded-lg transition-colors font-medium ${isAssigned ? 'bg-surface text-muted border border-divider cursor-not-allowed' : 'btn-primary'}`}
-                                  disabled={!selectedMission || assigning === r.influencer_id || isAssigned}
+                                  className="text-xs py-1 px-3 flex items-center justify-center gap-1 rounded-lg transition-colors font-medium btn-primary"
+                                  disabled={!selectedMission || assigning === r.influencer_id}
                                   onClick={async () => {
                                     setAssigning(r.influencer_id)
                                     try {
@@ -260,7 +282,7 @@ export function AdminAgents() {
                                     }
                                   }}
                                 >
-                                  {assigning === r.influencer_id ? <Spinner size={12}/> : isAssigned ? <><CheckCircle size={12}/> Assigned</> : 'Assign'}
+                                  {assigning === r.influencer_id ? <Spinner size={12}/> : 'Assign'}
                                 </button>
                               );
                             })()}

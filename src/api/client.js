@@ -59,6 +59,7 @@ export const missionsAPI = {
   listAssignments: () => api.get('/missions/assignments'),
   create: (data) => api.post('/missions', data),
   assign: (id, influencer_id) => api.post(`/missions/${id}/assign`, { influencer_id }),
+  unassign: (id, influencer_id) => api.delete(`/missions/${id}/assign/${influencer_id}`),
   // `data` may contain either `submission_url` (single platform) or
   // `submission_urls` ({ instagram: "...", youtube: "..." }) for multi-platform.
   submit: (id, data) => api.post(`/missions/${id}/submit`, data),
