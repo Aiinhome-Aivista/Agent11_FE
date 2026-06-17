@@ -95,28 +95,28 @@ export function AdminMissions() {
     const out = []
     for (const a of assignments) {
       if (a.status !== 'submitted' && a.status !== 'approved') continue
-      const urlsMap = a.submission_urls || null
+      const urlsMap = a.submission_urls || {}
       const platforms = (Array.isArray(a.platforms) && a.platforms.length > 0)
         ? a.platforms
         : (a.platform ? [a.platform] : ['post'])
-      if (urlsMap && Object.keys(urlsMap).length > 0) {
-        for (const p of platforms) {
-          out.push({
-            ...a,
-            row_platform: p,
-            row_url: urlsMap[p] || null,
-            row_key: `${a.assignment_id}_${p}`,
-          })
-        }
+      
+      let allSubmitted = false;
+      if (a.submission_url && (!a.submission_urls || Object.keys(a.submission_urls).length === 0)) {
+         allSubmitted = true;
+      } else if (platforms.length > 0) {
+         allSubmitted = platforms.every(p => urlsMap[p]);
       } else {
-        // No per-platform map → single-URL legacy submission.
-        out.push({
-          ...a,
-          row_platform: platforms[0],
-          row_url: a.submission_url || null,
-          row_key: `${a.assignment_id}_${platforms[0]}`,
-        })
+         allSubmitted = !!a.submission_url;
       }
+
+      out.push({
+        ...a,
+        row_key: a.assignment_id,
+        all_platforms: platforms,
+        urls_map: urlsMap,
+        legacy_url: a.submission_url,
+        all_submitted: allSubmitted
+      })
     }
     return out
   }
@@ -269,40 +269,53 @@ export function AdminMissions() {
           <tbody>
             {rows.map(r => (
               <tr key={r.row_key}>
-                <td
-                  className="font-medium text-accent cursor-pointer hover:underline"
-                  onClick={() => r.row_url && openInsights(r, r.row_platform, r.row_url)}
-                >
+                <td className="font-medium text-accent">
                   {r.mission_title}
                   {r.territory && <span className="block text-[10px] text-muted font-normal">{r.territory}</span>}
                 </td>
                 <td className="text-sm">{r.influencer_name}</td>
                 <td>
-                  {r.row_platform && r.row_platform !== 'post'
-                    ? <div className="flex items-center gap-2"><PlatformIcon platform={r.row_platform} /><span className="text-xs capitalize">{r.row_platform}</span></div>
-                    : <span className="text-xs text-muted flex items-center gap-1"><Globe size={12} /> post</span>}
+                  <div className="flex flex-wrap gap-1.5">
+                    {r.all_platforms.map(p => (
+                      <div key={p} title={p} className="cursor-help transition-transform hover:scale-110">
+                        {p !== 'post' ? <PlatformIcon platform={p} /> : <Globe size={16} className="text-muted" />}
+                      </div>
+                    ))}
+                  </div>
                 </td>
-                <td>₹{r.reward_amount?.toLocaleString('en-IN') || 0}</td>
+                <td>
+                  <div className="font-medium text-success">₹{r.reward_amount?.toLocaleString('en-IN') || 0}</div>
+                  {r.all_platforms.length > 1 && <div className="text-[10px] text-muted">(Total Package)</div>}
+                </td>
                 <td><Badge variant={r.status === 'approved' ? 'green' : 'warn'}>{r.status}</Badge></td>
                 <td>
-                  {r.row_url ? (
-                    <div className="flex items-center gap-2">
-                      <a href={r.row_url} target="_blank" rel="noreferrer" className="text-xs text-accent hover:underline truncate max-w-[180px] inline-block">View Post</a>
-                      <button
-                        className="text-[10px] uppercase tracking-wider bg-accent/10 hover:bg-accent/20 text-accent px-2 py-1 rounded border border-accent/20"
-                        onClick={() => openInsights(r, r.row_platform, r.row_url)}
-                      >
-                        Analyse
-                      </button>
-                    </div>
-                  ) : <span className="text-muted text-xs">—</span>}
+                  <div className="flex items-center gap-2">
+                    {r.all_platforms.map(p => {
+                      const url = r.urls_map[p] || (r.all_platforms.length === 1 ? r.legacy_url : null)
+                      return url ? (
+                        <div key={p} className="flex items-center bg-accent/5 border border-accent/20 rounded overflow-hidden">
+                          <a href={url} target="_blank" rel="noreferrer" title={`View ${p} Post`} className="p-1 hover:bg-accent/10 text-accent transition-colors flex items-center justify-center">
+                            <div className="scale-75 origin-center pointer-events-none">{p !== 'post' ? <PlatformIcon platform={p} /> : <Globe size={16}/>}</div>
+                          </a>
+                          <button onClick={() => openInsights(r, p, url)} title={`Analyse ${p}`} className="p-1.5 hover:bg-accent/10 text-accent border-l border-accent/20 transition-colors flex items-center justify-center">
+                            <BarChart2 size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div key={p} className="p-1 opacity-40 grayscale cursor-not-allowed flex items-center justify-center bg-surface border border-divider rounded" title={`${p} pending`}>
+                          <div className="scale-75 origin-center pointer-events-none">{p !== 'post' ? <PlatformIcon platform={p} /> : <Globe size={16}/>}</div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </td>
                 <td>
                   {r.status === 'submitted' ? (
                     <button
-                      className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1"
-                      onClick={() => handleApprove(r.assignment_id)}
-                      disabled={approving === r.assignment_id}
+                      className={`text-xs py-1.5 px-3 flex items-center gap-1 rounded transition-colors ${r.all_submitted ? 'btn-primary' : 'bg-surface text-muted border border-divider cursor-not-allowed'}`}
+                      onClick={() => r.all_submitted && handleApprove(r.assignment_id)}
+                      disabled={approving === r.assignment_id || !r.all_submitted}
+                      title={!r.all_submitted ? "Waiting for all platform submissions" : ""}
                     >
                       {approving === r.assignment_id ? <Spinner size={12} /> : <CheckCircle size={12} />} Approve
                     </button>
